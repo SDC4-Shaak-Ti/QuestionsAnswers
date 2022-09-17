@@ -30,7 +30,7 @@ async function populateTableAnswers() {
 
 
     const text =
-      "INSERT INTO answers (answer_id, question_id, body, date_written, answerer_name, answerer_email, reported, helpful) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
+      "INSERT INTO answers (answer_id, question_id, body, date, answerer_name, answerer_email, reported, helpfulness, photos) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
 
     process.stdout.write('...starting answers')
     for await (const record of parser) {
@@ -46,6 +46,7 @@ async function populateTableAnswers() {
         record.answerer_email,
         report,
         parseInt(record.helpful),
+        [],
       ]
 
       await client.query(text, values)
@@ -54,10 +55,12 @@ async function populateTableAnswers() {
     process.stdout.write('...done answers')
 
   })()
+
+  // populateAnswerPhotos()
 }
 
 
-populateTableAnswers()
+// populateTableAnswers()
 
 
 async function populateTableQuestions() {
@@ -82,7 +85,7 @@ async function populateTableQuestions() {
 
 
     const text =
-      "INSERT INTO questions (question_id, product_id, body, date_written, asker_name, asker_email, reported, helpful) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
+      "INSERT INTO questions (question_id, product_id, question_body, question_date, asker_name, asker_email, reported, question_helpfulness) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
 
     process.stdout.write('...starting questions')
     for await (const record of parser) {
@@ -108,7 +111,7 @@ async function populateTableQuestions() {
   })()
 }
 
-populateTableQuestions()
+// populateTableQuestions()
 
 
 async function populateTablePhotos() {
@@ -135,6 +138,8 @@ async function populateTablePhotos() {
     const text =
       "INSERT INTO photos (id, answer_id, url) VALUES ($1, $2, $3)";
 
+    // const test = "Update answers set photos = array_cat(photos, {$1, $2})"
+
     process.stdout.write('...starting photos')
     for await (const record of parser) {
       var date = new Date(parseInt(record.date_written))
@@ -154,3 +159,71 @@ async function populateTablePhotos() {
 }
 
 // populateTablePhotos();
+
+async function populateAnswerPhotos() {
+
+  const client = new Client({
+    // host: process.env.DBHOST,
+    // database: process.env.DBDATABASE,
+    // password: process.env.DBPASSWORD,
+    // port: process.env.DBPORT
+    host: 'localhost',
+    database: 'sdc',
+    password: '',
+    port: 5432
+  });
+  await client.connect();
+  await (async () => {
+    const parser = fs.createReadStream(path.join(__dirname + "/answers_photos.csv")).pipe(parse({
+      skip_records_with_error: true,
+      columns: true,
+      // to_line: 7
+    }));
+
+
+
+
+    // const text = `select json_agg(photos.url) from photos inner join answers on answers.answer_id=photos.answer_id where answers.answer_id=${record.answer_id}`
+
+    process.stdout.write('...starting Answer photos ')
+    for await (const record of parser) {
+
+      // await client.query(`select json_agg(photos.url) from photos inner join answers on answers.answer_id=photos.answer_id where answers.answer_id=${record.id}`, (err, data) => {
+      //   if (err) {
+      //     console.log(err)
+      //   } else {
+      //     console.log(data.rows[0]['json_agg'])
+      //     var array = [];
+      //     if (Array.isArray(data.rows[0]['json_agg'])) {
+      //       array = data.rows[0]['json_agg'];
+      //     }
+      //     client.query(`update answers set photos = array_append(photos, $1) where answer_id=${record.id}`)
+      //   }
+      // })
+      let text = `update answers set photos = array_prepend($1, photos) where answers.answer_id=$2`
+      var url;
+    //  record.url !=='null' ? url = `${record.url}` : url = [];
+      let values = [
+        {'id': record.id, 'url':`${record.url}`},
+        record.answer_id,
+      ]
+
+    await client.query(text, values, (err, data) => {
+      if (err) {
+        console.log(err)
+      }
+    })
+  }
+  process.stdout.write('...done Answer photos')
+  })()
+
+}
+
+populateAnswerPhotos();
+
+//connect to db
+//if table exist, drop
+//ETL to load
+//select Max(question_id) from questions
+//Alter sequence questions_question_id_seq RESTART WITH [your max value + 1]
+// select json_agg(photos.url) from photos inner join answers on answers.answer_id=photos.answer_id where answers.answer_id=5;

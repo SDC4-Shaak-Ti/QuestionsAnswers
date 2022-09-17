@@ -12,14 +12,15 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/qa/questions',
   (req, res) => {
-    var product_id = req.query.product_id
-    // console.log(req.query)
-    res.sendStatus(200)
+    var page = parseInt(req.query.page)
+    var count = parseInt(req.query.count)
+    var product_id = parseInt(req.query.product_id)
+    var offset = (page - 1) * count
+    console.log('count ', count, 'offset ', offset, 'product_id ', product_id)
+
+    controller.getQuestions(count, offset, page, product_id, res)
   });
 
-app.post('/qa/questions', (req, res) => {
-
-});
 
 app.get(`/qa/questions/*/answers`,
   (req, res) => {
@@ -35,28 +36,58 @@ app.get(`/qa/questions/*/answers`,
 
 app.post(`/qa/questions/*/answers`,
   (req, res) => {
+    var date = new Date().toISOString();
+    console.log(req.body)
+    var email = req.body.email;
+    var body = req.body.body;
+    var name = req.body.name;
+    var photos = req.body.photos;
 
+    var urlArray = req.url.split('/')
+    var question_id = parseInt(urlArray[3])
+
+    controller.postAnswers(email, body, name, date, photos, question_id, res)
   });
+
+app.post('/qa/questions', (req, res) => {
+  var date = new Date().toISOString();
+  var email = req.body.email;
+  var body = req.body.body;
+  var name = req.body.name;
+  var product_id = parseInt(req.body.product_id)
+
+  controller.postQuestions(email, body, name, date, product_id, res)
+
+});
+
 
 app.put(`/qa/questions/*/helpful`,
   (req, res) => {
-    res.sendStatus(204)
-
+    var urlArray = req.url.split('/')
+    var question_id = parseInt(urlArray[3])
+    controller.helpfulQuestions(question_id, res);
   });
+
 app.put(`/qa/questions/*/report`,
   (req, res) => {
-    res.sendStatus(204)
+    var urlArray = req.url.split('/')
+    var question_id = parseInt(urlArray[3])
+    controller.reportQuestions(question_id, res);
 
   });
 
 
 app.put(`/qa/answers/*/helpful`,
   (req, res) => {
-    res.sendStatus(204)
+    var urlArray = req.url.split('/')
+    var answer_id = parseInt(urlArray[3])
+    controller.helpfulAnswers(answer_id, res);
   });
+
 app.put(`/qa/answers/*/report`,
   (req, res) => {
-    res.sendStatus(204)
-
+    var urlArray = req.url.split('/')
+    var answer_id = parseInt(urlArray[3])
+    controller.reportAnswers(answer_id, res);
   });
 module.exports = app;

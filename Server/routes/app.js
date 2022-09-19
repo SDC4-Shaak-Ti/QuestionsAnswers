@@ -10,34 +10,22 @@ app.use(partials());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/qa/questions',
-  (req, res) => {
-    var page = parseInt(req.query.page)
-    var count = parseInt(req.query.count)
-    var product_id = parseInt(req.query.product_id)
-    var offset = (page - 1) * count
-    console.log('count ', count, 'offset ', offset, 'product_id ', product_id)
 
-    controller.getQuestions(count, offset, page, product_id, res)
-  });
 
 
 app.get(`/qa/questions/*/answers`,
   (req, res) => {
-    var page = parseInt(req.query.page)
-    var count = parseInt(req.query.count)
+    var page = parseInt(req.query.page) || 1;
+    var count = parseInt(req.query.count) || 5;
     var offset = (page - 1) * count
     var urlArray = req.url.split('/')
     var question_id = parseInt(urlArray[3])
-    console.log('count ', count, 'offset ', offset, 'question_id ', question_id)
-
     controller.getAnswers(count, offset, page, question_id, res)
   });
 
 app.post(`/qa/questions/*/answers`,
   (req, res) => {
     var date = new Date().toISOString();
-    console.log(req.body)
     var email = req.body.email;
     var body = req.body.body;
     var name = req.body.name;
@@ -89,5 +77,14 @@ app.put(`/qa/answers/*/report`,
     var urlArray = req.url.split('/')
     var answer_id = parseInt(urlArray[3])
     controller.reportAnswers(answer_id, res);
+  });
+
+  app.get('/qa/questions',
+  (req, res) => {
+    var page = parseInt(req.query.page) || 1;
+    var count = parseInt(req.query.count) || 5;
+    var product_id = parseInt(req.query.product_id)
+    var offset = (page - 1) * count
+    controller.getQuestions(count, offset, product_id, res)
   });
 module.exports = app;

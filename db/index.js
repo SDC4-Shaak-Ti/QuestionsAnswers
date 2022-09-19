@@ -3,10 +3,6 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const db = new Pool({
-  // host: "localhost",
-  // database: "sdc",
-  // password: "",
-  // port: 5432
   host: process.env.DBHOST,
   database: process.env.DBDATABASE,
   password: process.env.DBPASSWORD,

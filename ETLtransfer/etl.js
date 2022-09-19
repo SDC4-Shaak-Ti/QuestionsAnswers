@@ -5,20 +5,21 @@ const assert = require('assert');
 const { generate } = require('csv-generate');
 const { parse } = require('csv-parse');
 const path = require('path')
-require('dotenv').config();
+const db = require('../db/index.js')
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 
 async function populateTableAnswers() {
 
   const client = new Client({
-    // host: process.env.DBHOST,
-    // database: process.env.DBDATABASE,
-    // password: process.env.DBPASSWORD,
-    // port: process.env.DBPORT
-    host: 'localhost',
-    database: 'sdc',
-    password: '',
-    port: 5432
+    host: process.env.DBHOST,
+    database: process.env.DBDATABASE,
+    password: process.env.DBPASSWORD,
+    port: process.env.DBPORT
+    // host: 'localhost',
+    // database: 'sdc',
+    // password: '',
+    // port: 5432
   });
   await client.connect();
   await (async () => {
@@ -30,13 +31,13 @@ async function populateTableAnswers() {
 
 
     const text =
-      "INSERT INTO answers (answer_id, question_id, body, date, answerer_name, answerer_email, reported, helpfulness, photos) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
+      "INSERT INTO answers (answer_id, question_id, body, date, answerer_name, answerer_email, reported, helpfulness) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
 
     process.stdout.write('...starting answers')
     for await (const record of parser) {
       var date = new Date(parseInt(record.date_written))
       var report;
-      record.reported === '0' ? report="false" : report="true"
+      record.reported === '0' ? report = "false" : report = "true"
       var values = [
         parseInt(record.id),
         parseInt(record.question_id),
@@ -46,7 +47,6 @@ async function populateTableAnswers() {
         record.answerer_email,
         report,
         parseInt(record.helpful),
-        [],
       ]
 
       await client.query(text, values)
@@ -56,7 +56,6 @@ async function populateTableAnswers() {
 
   })()
 
-  // populateAnswerPhotos()
 }
 
 
@@ -66,14 +65,10 @@ async function populateTableAnswers() {
 async function populateTableQuestions() {
 
   const client = new Client({
-    // host: process.env.DBHOST,
-    // database: process.env.DBDATABASE,
-    // password: process.env.DBPASSWORD,
-    // port: process.env.DBPORT
-    host: 'localhost',
-    database: 'sdc',
-    password: '',
-    port: 5432
+    host: process.env.DBHOST,
+    database: process.env.DBDATABASE,
+    password: process.env.DBPASSWORD,
+    port: process.env.DBPORT
   });
   await client.connect();
   await (async () => {
@@ -91,7 +86,7 @@ async function populateTableQuestions() {
     for await (const record of parser) {
       var date = new Date(parseInt(record.date_written))
       var report;
-     record.reported === '0' ? report="false" : report="true"
+      record.reported === '0' ? report = "false" : report = "true"
       var values = [
         parseInt(record.id),
         parseInt(record.product_id),
@@ -117,14 +112,10 @@ async function populateTableQuestions() {
 async function populateTablePhotos() {
 
   const client = new Client({
-    // host: process.env.DBHOST,
-    // database: process.env.DBDATABASE,
-    // password: process.env.DBPASSWORD,
-    // port: process.env.DBPORT
-    host: 'localhost',
-    database: 'sdc',
-    password: '',
-    port: 5432
+    host: process.env.DBHOST,
+    database: process.env.DBDATABASE,
+    password: process.env.DBPASSWORD,
+    port: process.env.DBPORT
   });
   await client.connect();
   await (async () => {
@@ -137,8 +128,6 @@ async function populateTablePhotos() {
 
     const text =
       "INSERT INTO photos (id, answer_id, url) VALUES ($1, $2, $3)";
-
-    // const test = "Update answers set photos = array_cat(photos, {$1, $2})"
 
     process.stdout.write('...starting photos')
     for await (const record of parser) {
@@ -163,14 +152,10 @@ async function populateTablePhotos() {
 async function populateAnswerPhotos() {
 
   const client = new Client({
-    // host: process.env.DBHOST,
-    // database: process.env.DBDATABASE,
-    // password: process.env.DBPASSWORD,
-    // port: process.env.DBPORT
-    host: 'localhost',
-    database: 'sdc',
-    password: '',
-    port: 5432
+    host: process.env.DBHOST,
+    database: process.env.DBDATABASE,
+    password: process.env.DBPASSWORD,
+    port: process.env.DBPORT
   });
   await client.connect();
   await (async () => {
@@ -180,46 +165,29 @@ async function populateAnswerPhotos() {
       // to_line: 7
     }));
 
-
-
-
-    // const text = `select json_agg(photos.url) from photos inner join answers on answers.answer_id=photos.answer_id where answers.answer_id=${record.answer_id}`
-
     process.stdout.write('...starting Answer photos ')
     for await (const record of parser) {
 
-      // await client.query(`select json_agg(photos.url) from photos inner join answers on answers.answer_id=photos.answer_id where answers.answer_id=${record.id}`, (err, data) => {
-      //   if (err) {
-      //     console.log(err)
-      //   } else {
-      //     console.log(data.rows[0]['json_agg'])
-      //     var array = [];
-      //     if (Array.isArray(data.rows[0]['json_agg'])) {
-      //       array = data.rows[0]['json_agg'];
-      //     }
-      //     client.query(`update answers set photos = array_append(photos, $1) where answer_id=${record.id}`)
-      //   }
-      // })
       let text = `update answers set photos = array_prepend($1, photos) where answers.answer_id=$2`
       var url;
-    //  record.url !=='null' ? url = `${record.url}` : url = [];
       let values = [
-        {'id': record.id, 'url':`${record.url}`},
+        { 'id': record.id, 'url': `${record.url}` },
         record.answer_id,
       ]
 
-    await client.query(text, values, (err, data) => {
-      if (err) {
-        console.log(err)
-      }
-    })
-  }
-  process.stdout.write('...done Answer photos')
+      await client.query(text, values, (err, data) => {
+        if (err) {
+          console.log(err)
+        }
+      })
+    }
+    process.stdout.write('...done Answer photos')
+
   })()
 
 }
 
-populateAnswerPhotos();
+// populateAnswerPhotos();
 
 //connect to db
 //if table exist, drop
@@ -227,3 +195,47 @@ populateAnswerPhotos();
 //select Max(question_id) from questions
 //Alter sequence questions_question_id_seq RESTART WITH [your max value + 1]
 // select json_agg(photos.url) from photos inner join answers on answers.answer_id=photos.answer_id where answers.answer_id=5;
+
+
+(async function () {
+  const client = await db.connect()
+
+  await client.query('DROP TABLE  IF EXISTS questions, answers, photos')
+
+  await client.query('CREATE TABLE IF NOT EXISTS questions (product_id BIGINT, question_id serial PRIMARY KEY NOT NULL, question_body VARCHAR, question_date VARCHAR, asker_name VARCHAR, asker_email VARCHAR, reported VARCHAR, question_helpfulness INT)')
+
+  await client.query('CREATE TABLE IF NOT EXISTS answers (answer_id serial PRIMARY KEY NOT NULL, question_id BIGINT, body VARCHAR, date VARCHAR, answerer_name VARCHAR, answerer_email VARCHAR, reported VARCHAR, helpfulness INT)')
+
+  await client.query('CREATE TABLE IF NOT EXISTS photos (id serial PRIMARY KEY NOT NULL, answer_id BIGINT, url VARCHAR)')
+
+
+  populateTableQuestions()
+    .then(() => {
+      console.log('changing questions sequence')
+      client.query('SELECT MAX (question_id) FROM questions').then(res => {
+        var newMax = res.rows[0].max + 2;
+        client.query(`ALTER SEQUENCE questions_question_id_seq RESTART WITH ${newMax}`)
+      });
+    })
+    .catch(err => { console.log('questions', err) })
+
+  populateTableAnswers()
+    .then(() => {
+      console.log('changing answers sequence')
+      client.query('SELECT MAX (answer_id) FROM answers').then(res => {
+        var newMax = res.rows[0].max + 2;
+        client.query(`ALTER SEQUENCE answers_answer_id_seq RESTART WITH ${newMax}`)
+      });
+    })
+    .catch(err => { console.log('answers', err) })
+
+  populateTablePhotos()
+    .then(() => {
+      console.log('changing photos sequence')
+      client.query('SELECT MAX (id) FROM photos').then(res => {
+        var newMax = res.rows[0].max + 2;
+        client.query(`ALTER SEQUENCE photos_id_seq RESTART WITH ${newMax}`)
+      });
+    })
+    .catch(err => { console.log('photos', err) })
+})()

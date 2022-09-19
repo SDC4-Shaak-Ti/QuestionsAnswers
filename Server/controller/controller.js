@@ -1,7 +1,7 @@
 var models = require('../models/models.js');
 
 module.exports = {
-  getQuestions: function (count, offset, page, product_id, res) {
+  getQuestions: function (count, offset, product_id, res) {
     models.getQuestionsDb(count, offset, product_id, (err, data) => {
       if (err) {
         res.status(500).send(err);
@@ -30,7 +30,6 @@ module.exports = {
     });
   },
   postQuestions: function (email, body, name, date, product_id, res){
-    console.log('post questions')
     models.postQuestionsDb(email, body, name, date, product_id, (err, data) => {
       if (err) {
         res.status(500).send(err)
@@ -40,7 +39,6 @@ module.exports = {
     })
   },
   postAnswers: function (email, body, name, date, photos, question_id, res){
-    console.log('post answers')
     models.postAnswersDb(email, body, name, date, photos, question_id, (err, data) => {
       if (err) {
         res.status(500).send(err)

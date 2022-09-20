@@ -33,12 +33,33 @@ const processAnswerArray = function (initialResults) {
 }
 //get all Answers and related photos from the db
 const getAnswersDb = function (count, offset, question_id, callback) {
-  return db.query(`SELECT answers.answer_id, body, date, answerer_name, helpfulness, photos.id, photos.url FROM answers FULL OUTER JOIN photos on answers.answer_id=photos.answer_id WHERE answers.question_id=${question_id} AND answers.reported='false' ORDER BY answers.helpfulness DESC limit ${count} offset ${offset}`, (err, data) => {
+  // var text =`SELECT answers.answer_id, body, date, answerer_name, helpfulness, photos.id, photos.url FROM answers FULL OUTER JOIN photos on answers.answer_id=photos.answer_id WHERE answers.question_id=${question_id} AND answers.reported='false' ORDER BY answers.helpfulness DESC limit ${count} offset ${offset}`
+   db.query(`SELECT json_build_object(
+    'answer_id', answers.answer_id,
+    'body', answers.body,
+    'date', answers.date,
+    'answerer_name', answers.answerer_name,
+    'helpfulness', answers.helpfulness,
+    'photos', (
+      select json_agg(json_build_object(
+        'id', photos.id,
+        'url', photos.url
+      ))
+      from photos where photos.answer_id = answers.answer_id
+    )
+   ) from answers where answers.question_id=${question_id} AND answers.reported='false' ORDER BY answers.helpfulness DESC limit ${count} offset ${offset}
+   `, (err, data) => {
     if (err) {
       callback(err);
     } else {
-      var initialResults = data.rows;
-      var finalResults = processAnswerArray(initialResults)
+      var results = data.rows;
+      var finalResults = [];
+      results.forEach(result => {
+        if (result.json_build_object.photos === null) {
+          result.json_build_object.photos = [];
+        }
+        finalResults.push(result.json_build_object)
+      })
       callback(null, finalResults);
     }
 
@@ -157,32 +178,36 @@ const postAnswersDb = function (email, body, name, date, photos, question_id, ca
             answer_id,
             photos[i],
           ]
-          await db.query(text2, values).then(() => { console.log('success') })
+          await db.query(text2, values)
         }
       }
-      insertPhotos(photos, answer_id)
-      callback(null, 201)
+      insertPhotos(photos, answer_id).then(()=>{
+        callback(null, data)
+      })
+      .catch((err)=>{
+        callback(err)
+      })
     }
   })
 }
 const reportQuestionsDb = function (question_id, callback) {
   db.query(`update questions set reported='true' where question_id=${question_id}`)
-    .then(() => { callback(null, 'success') })
+    .then((res) => { callback(null, res) })
     .catch(err => { callback(err) })
 }
 const reportAnswersDb = function (answer_id, callback) {
   db.query(`update answers set reported='true' where answer_id=${answer_id}`)
-    .then(() => { callback(null, 'success') })
+    .then((res) => { callback(null, res) })
     .catch(err => { callback(err) })
 }
 const helpfulQuestionsDb = function (question_id, callback) {
   db.query(`update questions set question_helpfulness=question_helpfulness+1 where question_id=${question_id}`)
-    .then(() => { callback(null, 'success') })
+    .then((res) => { callback(null, res) })
     .catch(err => { callback(err) })
 }
 const helpfulAnswersDb = function (answer_id, callback) {
   db.query(`update answers set helpfulness=helpfulness+1 where answer_id=${answer_id}`)
-    .then(() => { callback(null, 'success') })
+    .then((res) => { callback(null, res) })
     .catch(err => { callback(err) })
 }
 

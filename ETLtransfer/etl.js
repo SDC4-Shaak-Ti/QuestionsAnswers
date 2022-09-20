@@ -131,8 +131,6 @@ async function populateTablePhotos() {
 
     process.stdout.write('...starting photos')
     for await (const record of parser) {
-      var date = new Date(parseInt(record.date_written))
-      // console.log(date)
       var values = [
         parseInt(record.id),
         parseInt(record.answer_id),
@@ -189,14 +187,6 @@ async function populateAnswerPhotos() {
 
 // populateAnswerPhotos();
 
-//connect to db
-//if table exist, drop
-//ETL to load
-//select Max(question_id) from questions
-//Alter sequence questions_question_id_seq RESTART WITH [your max value + 1]
-// select json_agg(photos.url) from photos inner join answers on answers.answer_id=photos.answer_id where answers.answer_id=5;
-
-
 (async function () {
   const client = await db.connect()
 
@@ -208,13 +198,18 @@ async function populateAnswerPhotos() {
 
   await client.query('CREATE TABLE IF NOT EXISTS photos (id serial PRIMARY KEY NOT NULL, answer_id BIGINT, url VARCHAR)')
 
-
-  populateTableQuestions()
+populateTableQuestions()
     .then(() => {
       console.log('changing questions sequence')
       client.query('SELECT MAX (question_id) FROM questions').then(res => {
         var newMax = res.rows[0].max + 2;
         client.query(`ALTER SEQUENCE questions_question_id_seq RESTART WITH ${newMax}`)
+        .then(()=> {
+          client.query('CREATE INDEX questions_product_id_idx ON questions (product_id)')
+          .then(()=>{
+            client.query('CREATE INDEX questions_product_id_question_id_idx ON questions (product_id, question_id)')
+          })
+        })
       });
     })
     .catch(err => { console.log('questions', err) })
@@ -225,6 +220,12 @@ async function populateAnswerPhotos() {
       client.query('SELECT MAX (answer_id) FROM answers').then(res => {
         var newMax = res.rows[0].max + 2;
         client.query(`ALTER SEQUENCE answers_answer_id_seq RESTART WITH ${newMax}`)
+        .then(()=> {
+          client.query('CREATE INDEX answers_question_id_idx ON answers (question_id)')
+          .then(()=>{
+            client.query('CREATE INDEX answers_question_id_answer_id_idx ON answers (question_id, answer_id)')
+          })
+        })
       });
     })
     .catch(err => { console.log('answers', err) })
@@ -235,6 +236,9 @@ async function populateAnswerPhotos() {
       client.query('SELECT MAX (id) FROM photos').then(res => {
         var newMax = res.rows[0].max + 2;
         client.query(`ALTER SEQUENCE photos_id_seq RESTART WITH ${newMax}`)
+        .then(()=> {
+          client.query('CREATE INDEX photos_answer_id_idx ON photos (answer_id)')
+        })
       });
     })
     .catch(err => { console.log('photos', err) })

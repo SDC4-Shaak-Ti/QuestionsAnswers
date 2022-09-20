@@ -14,7 +14,7 @@ config:
       - "reported"
       - "helpful"
   phases:
-    - duration: 30
+    - duration: 60
       arrivalRate: 1000
   ensure:
     p99: 150

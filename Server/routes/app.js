@@ -15,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get(`/qa/questions/*/answers`,
   (req, res) => {
+    // console.log(req.query)
     var page = parseInt(req.query.page) || 1;
     var count = parseInt(req.query.count) || 5;
     var offset = (page - 1) * count
@@ -79,7 +80,7 @@ app.put(`/qa/answers/*/report`,
     controller.reportAnswers(answer_id, res);
   });
 
-  app.get('/qa/questions',
+app.get('/qa/questions',
   (req, res) => {
     var page = parseInt(req.query.page) || 1;
     var count = parseInt(req.query.count) || 5;

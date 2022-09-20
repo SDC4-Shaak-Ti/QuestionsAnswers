@@ -2,39 +2,11 @@ var db = require('../../db/index.js');
 
 
 
-const processAnswerArray = function (initialResults) {
-  var photoObj = {};
-  var finalResults = [];
-  initialResults.forEach(result => {
-    if (result.answer_id !== null) {
-      if (result.id === null) {
-        delete result.id;
-        delete result.url;
-        result.photos = [];
-        finalResults.push(result)
-      } else {
-        if (photoObj[result.answer_id] === undefined) {
-          photoObj[result.answer_id] = result.url
-          result.photos = [{ id: result.id, url: result.url }]
-          delete result.id;
-          delete result.url;
-          finalResults.push(result)
-        } else {
-          finalResults.forEach(finalResult => {
-            if (finalResult['answer_id'] === result.answer_id) {
-              finalResult['photos'].push({ id: result.id, url: result.url })
-            }
-          })
-        }
-      }
-    }
-  })
-  return finalResults
-}
+
 //get all Answers and related photos from the db
 const getAnswersDb = function (count, offset, question_id, callback) {
-  // var text =`SELECT answers.answer_id, body, date, answerer_name, helpfulness, photos.id, photos.url FROM answers FULL OUTER JOIN photos on answers.answer_id=photos.answer_id WHERE answers.question_id=${question_id} AND answers.reported='false' ORDER BY answers.helpfulness DESC limit ${count} offset ${offset}`
-   db.query(`SELECT json_build_object(
+
+  db.query(`SELECT json_build_object(
     'answer_id', answers.answer_id,
     'body', answers.body,
     'date', answers.date,
@@ -67,65 +39,54 @@ const getAnswersDb = function (count, offset, question_id, callback) {
 }
 //get all Questions and answers from the db
 const getQuestionsDb = function (count, offset, product_id, callback) {
-  db.query(`SELECT questions.question_id, question_body, question_date, asker_name, question_helpfulness, questions.reported, answers.answer_id, body, date, answerer_name, helpfulness, id, url FROM questions FULL OUTER JOIN answers ON questions.question_id=answers.question_id FULL OUTER JOIN photos ON answers.answer_id=photos.answer_id WHERE questions.product_id=${product_id} AND questions.reported='false' ORDER BY question_helpfulness, helpfulness DESC limit ${count} offset ${offset}`, (err, data) => {
+
+  db.query(`select json_build_object(
+    'question_id', questions.question_id,
+    'question_body', questions.question_body,
+    'question_date', questions.question_date,
+    'asker_name', questions.asker_name,
+    'question_helpfulness', questions.question_helpfulness,
+    'reported', questions.reported,
+    'answers', (
+       Select json_agg( json_build_object(
+         'id', answers.answer_id,
+         'body', answers.body,
+         'date', answers.date,
+         'answerer_name', answers.answerer_name,
+         'helpfulness', answers.helpfulness,
+         'photos', (
+         select json_agg(json_build_object(
+           'id', photos.id,
+           'url', photos.url
+         ))
+             from photos where photos.answer_id = answers.answer_id
+       )
+       ))
+         from answers where answers.question_id = questions.question_id
+       )
+  )
+  from questions where questions.product_id=${product_id} AND questions.reported='false' ORDER BY questions.question_helpfulness DESC limit ${count} offset ${offset}
+   `, (err, data) => {
     if (err) {
+      console.log(err)
       callback(err);
     } else {
       var questions = data.rows;
-      var finalResults = []
-      var answersResults = []
-      var questionAnswerKeys = {};
+      var finalResults = [];
       questions.forEach(question => {
-        if (questionAnswerKeys[question.question_id] === undefined) {
-          questionAnswerKeys[question.question_id] = [question.answer_id]
-          answersResults.push({
-            answer_id: question.answer_id,
-            body: question.body,
-            date: question.date,
-            answerer_name: question.answerer_name,
-            helpfulness: question.helpfulness,
-            id: question.id,
-            url: question.url
-          })
-          delete question.answer_id,
-            delete question.body,
-            delete question.date,
-            delete question.answerer_name,
-            delete question.helpfulness,
-            delete question.id,
-            delete question.url
-          finalResults.push(question)
+        var answerObj = {};
+        if (question.json_build_object.answers === null) {
+          question.json_build_object.answers = {};
         } else {
-          questionAnswerKeys[question.question_id].push(question.answer_id)
-          answersResults.push({
-            answer_id: question.answer_id,
-            body: question.body,
-            date: question.date,
-            answerer_name: question.answerer_name,
-            helpfulness: question.helpfulness,
-            id: question.id,
-            url: question.url
+          question?.json_build_object?.answers?.forEach(answer => {
+            if (answer.photos === null) {
+              answer.photos = [];
+            }
+            answerObj[answer.id] = answer
           })
+          question.json_build_object.answers = answerObj
         }
-      })
-      var processedAnswersResults = processAnswerArray(answersResults)
-      var answerObj = {}
-      processedAnswersResults.forEach(answer => {
-        answer.id = answer.answer_id;
-        delete answer.answer_id;
-        answerObj[answer.id] = answer
-      })
-      finalResults.forEach(question => {
-        var answerIds = questionAnswerKeys[question.question_id]
-        question.answers = {};
-        answerIds.forEach(id => {
-          if (id !== null) {
-            question.answers[id] = answerObj[`${id}`]
-          }
-        })
-      })
-      finalResults.sort((a, b) => {
-        return b.question_helpfulness - a.question_helpfulness;
+        finalResults.push(question.json_build_object)
       })
       callback(null, finalResults)
 
@@ -181,12 +142,12 @@ const postAnswersDb = function (email, body, name, date, photos, question_id, ca
           await db.query(text2, values)
         }
       }
-      insertPhotos(photos, answer_id).then(()=>{
+      insertPhotos(photos, answer_id).then(() => {
         callback(null, data)
       })
-      .catch((err)=>{
-        callback(err)
-      })
+        .catch((err) => {
+          callback(err)
+        })
     }
   })
 }
@@ -221,13 +182,6 @@ module.exports = {
   getAnswersDb: getAnswersDb,
   getQuestionsDb: getQuestionsDb
 }
-
-
-
-
-
-
-
 
 
 

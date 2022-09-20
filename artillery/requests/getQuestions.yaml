@@ -15,7 +15,7 @@ config:
       - "helpful"
   phases:
     - duration: 60
-      arrivalRate: 1000
+      arrivalRate: 100
 
   ensure:
     p99: 150

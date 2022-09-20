@@ -1,0 +1,26 @@
+config:
+  target: "http://localhost:3000"
+  http:
+    extendedMetrics: true
+  payload:
+    path: '../../ETLtransfer/testing/endAnswers.csv'
+    fields:
+      - "id"
+      - "question_id"
+      - "body"
+      - "date_written"
+      - "answerer_name"
+      - "answerer_email"
+      - "reported"
+      - "helpful"
+  phases:
+    - duration: 60
+      arrivalRate: 1
+  ensure:
+    p99: 150
+    maxErrorRate: 1
+scenarios:
+  - flow:
+      - put:
+          url: "/qa/answers/{{ answer_id }}/helpful"
+

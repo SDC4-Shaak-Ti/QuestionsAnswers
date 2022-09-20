@@ -1,0 +1,30 @@
+config:
+  target: "http://localhost:3000"
+  http:
+    extendedMetrics: true
+  payload:
+    path: '../../ETLtransfer/testing/endQuestions.csv'
+    fields:
+      - "id"
+      - "product_id"
+      - "body"
+      - "date_written"
+      - "asker_name"
+      - "asker_email"
+      - "reported"
+      - "helpful"
+  phases:
+    - duration: 60
+      arrivalRate: 1000
+
+  ensure:
+    p99: 150
+    maxErrorRate: 1
+scenarios:
+  - flow:
+      - get:
+          url: "/qa/questions"
+          qs:
+            product_id: "{{product_id}}"
+            page: 1
+            count: 5

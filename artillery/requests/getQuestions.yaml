@@ -14,8 +14,11 @@ config:
       - "reported"
       - "helpful"
   phases:
-    - duration: 60
+    - duration: 10
       arrivalRate: 100
+      rampto: 1000
+    - duration: 50
+      arrivalRate: 1000
 
   ensure:
     p99: 150

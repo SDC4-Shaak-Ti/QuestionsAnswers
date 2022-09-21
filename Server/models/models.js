@@ -68,7 +68,6 @@ const getQuestionsDb = function (count, offset, product_id, callback) {
   from questions where questions.product_id=${product_id} AND questions.reported='false' ORDER BY questions.question_helpfulness DESC limit ${count} offset ${offset}
    `, (err, data) => {
     if (err) {
-      console.log(err)
       callback(err);
     } else {
       var questions = data.rows;

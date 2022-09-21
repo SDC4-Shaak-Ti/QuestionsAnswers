@@ -10,7 +10,9 @@ app.use(partials());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
+app.get(`/loaderio-5734af89c1b548e329bf68fc3dc3ae70`, (req, res) => {
+  res.sendFile('../../loaderio-5734af89c1b548e329bf68fc3dc3ae70.txt')
+})
 
 
 app.get(`/qa/questions/*/answers`,

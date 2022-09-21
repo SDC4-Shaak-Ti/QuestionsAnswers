@@ -14,8 +14,9 @@ const db = new Pool({
 db.connect((err, client, done) => {
   if (err) {
     console.log(err);
+  } else {
+    console.log('successful postgreSQL connection')
   }
-  console.log('successful postgreSQL connection')
 })
 
 
